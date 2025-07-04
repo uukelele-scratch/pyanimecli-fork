@@ -32,7 +32,7 @@ pip install pyanimecli
 
 ## 🛠 Prerequisites
 
-1. **Python 3.1+**
+1. **Python 3.11+**
 2. **VLC Media Player:** Must be installed and accessible from your system's PATH. [Download VLC](https://www.videolan.org/vlc/)
 3. **Required CLI Utilities:**
 
