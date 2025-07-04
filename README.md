@@ -26,13 +26,13 @@ A powerful command-line interface for searching, getting info, and watching anim
 pip install pyanimecli
 ````
 
-> Make sure your `pip` points to Python 3.6+ (e.g., use `pip3` if needed).
+> Make sure your `pip` points to Python 3.11+ (e.g., use `pip3` if needed).
 
 ---
 
 ## 🛠 Prerequisites
 
-1. **Python 3.6+**
+1. **Python 3.1+**
 2. **VLC Media Player:** Must be installed and accessible from your system's PATH. [Download VLC](https://www.videolan.org/vlc/)
 3. **Required CLI Utilities:**
 
