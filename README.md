@@ -2,76 +2,71 @@
 
 A powerful command-line interface for searching, getting info, and watching anime directly from your terminal, powered by the [YumaAPI](https://yumaapi.vercel.app/).
 
+---
 
+## 🚀 Features
 
-## Features
+- 🔍 **Search:** Find any anime by title.
+- 📋 **Detailed Info:** Descriptions, episode lists, genres, and more.
+- 🎬 **Stream with VLC:** Watch subbed or dubbed episodes in VLC Media Player.
+- 💬 **Automatic Subtitles:** Automatically loads subtitles for subbed streams.
+- 🌟 **Discover:** Browse recently updated episodes, top airing anime, and spotlight series.
+- 🧭 **Explore:** Search by genre or studio.
+- 📆 **Schedule:** View airing schedules by date.
+- 💻 **Cross-Platform:** Works on Linux, macOS, and Windows.
+- 🎨 **Rich Formatting:** Clean, colorful, and easy-to-read output in your terminal.
 
-- **Search:** Find any anime by title.
-- **Detailed Info:** Get comprehensive details including descriptions, episode lists, genres, and more.
-- **Stream with VLC:** Watch subbed or dubbed episodes directly in VLC Media Player.
-- **Automatic Subtitles:** Automatically downloads and loads subtitles for subbed streams.
-- **Discover:** Browse recently updated episodes, top airing anime, and spotlight series.
-- **Explore:** Search for anime by genre or studio.
-- **Schedule:** Check the airing schedule for any given date.
-- **Cross-Platform:** Works on both Linux and Windows.
-- **Rich Formatting:** Clean, colorful, and easy-to-read output in your terminal.
+---
 
-## Prerequisites
+## 📦 Installation
 
-1.  **Python 3.6+**
-2.  **VLC Media Player:** Must be installed and accessible from your system's PATH. You can download it from [videolan.org](https://www.videolan.org/vlc/).
-3.  **Required Utilities:**
-    -   On **Linux**: `wget`
-    -   On **Windows**: `curl` (Comes pre-installed on modern Windows 10/11).
-4.  **Python Libraries:** `requests` and `rich`.
+### From PyPI (Recommended)
 
-## Installation
+```bash
+pip install pyanimecli
+````
 
-1.  **Download the script:**
-    Save the code as `pyanimecli.py`.
+> Make sure your `pip` points to Python 3.6+ (e.g., use `pip3` if needed).
 
-2.  **Install Python dependencies:**
-    ```bash
-    pip install requests rich
-    ```
+---
 
-3.  **Make the script executable (Linux/macOS):**
-    ```bash
-    chmod +x pyanimecli.py
-    ```
+## 🛠 Prerequisites
 
-4.  **(Optional but Recommended) Add to your PATH:**
-    To use `pyanimecli` from anywhere, move it to a directory in your system's PATH.
+1. **Python 3.6+**
+2. **VLC Media Player:** Must be installed and accessible from your system's PATH. [Download VLC](https://www.videolan.org/vlc/)
+3. **Required CLI Utilities:**
 
-    -   **On Linux/macOS:**
-        ```bash
-        sudo mv pyanimecli.py /usr/local/bin/pyanimecli
-        ```
-    -   **On Windows:**
-        Move `pyanimecli.py` to a folder that is included in your `Path` Environment Variable. You can then run it using `python pyanimecli.py <args>`.
+   * On **Linux/macOS**: `wget`
+   * On **Windows**: `curl` (comes pre-installed on Windows 10+)
 
-## Usage
+---
 
-Get a full list of commands with `-h` or `-help`.
+## 🧪 Usage
+
+Get a full list of commands:
 
 ```bash
 pyanimecli -h
 ```
 
-### Command Examples
+---
 
-**1. Search for an anime:**
+### 📖 Command Examples
+
+#### 1. Search for an anime:
+
 ```bash
 pyanimecli -s "Attack on Titan"
 ```
 
-**2. Get detailed info for an anime (using the ID from the search results):**
+#### 2. Get detailed info for an anime (using the ID from the search results):
+
 ```bash
 pyanimecli -i "attack-on-titan-3d"
 ```
-This will display the description and a list of all available episodes.
 
-**3. Watch an episode (using the Episode ID from the info list):**
+#### 3. Watch an episode:
+
 ```bash
 # Watch a subbed episode
 pyanimecli -w "attack-on-titan-3d$episode$571" sub
@@ -80,23 +75,26 @@ pyanimecli -w "attack-on-titan-3d$episode$571" sub
 pyanimecli -w "attack-on-titan-3d$episode$571" dub
 ```
 
-**4. Browse Recently Updated Episodes:**
+#### 4. Browse Recently Updated Episodes:
+
 ```bash
 pyanimecli -re
 ```
 
-**5. Browse Top Airing Anime:**
+#### 5. Browse Top Airing Anime:
+
 ```bash
 pyanimecli -ta
 ```
 
-**6. Use Pagination:**
-Add the `-p` or `-page` flag to any command that supports it.
+#### 6. Use Pagination:
+
 ```bash
 pyanimecli -ta -p 2
 ```
 
-**7. List all Genres and Search by Genre:**
+#### 7. List and Search Genres:
+
 ```bash
 # List all genres
 pyanimecli -g
@@ -105,11 +103,14 @@ pyanimecli -g
 pyanimecli -gs "action"
 ```
 
-**8. View the Airing Schedule:**
+#### 8. View the Airing Schedule:
+
 ```bash
-# Get schedule for a specific date
 pyanimecli -sc 2025-07-04
 ```
 
-### Disclaimer
-This tool is created for educational purposes. All content is sourced from the publicly available YumaAPI. Please respect the service providers.
+---
+
+## ⚠️ Disclaimer
+
+This tool is created for educational purposes only. All content is sourced from the publicly available [YumaAPI](https://yumaapi.vercel.app/). Please respect the rights and policies of the original content providers.
