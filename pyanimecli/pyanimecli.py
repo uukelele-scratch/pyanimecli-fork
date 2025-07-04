@@ -7,7 +7,7 @@ import tempfile
 import shutil
 import os
 import re
-from urllib.parse import quote_plus
+from urllib.parse import quote
 
 try:
     from rich.console import Console
@@ -193,7 +193,7 @@ def display_suggestions(suggestions_data):
     console.print(table)
     
 def search_anime(query, page):
-    endpoint = f"search/{quote_plus(query)}"
+    endpoint = f"search/{quote(query)}"
     data = make_request(endpoint, params={"page": page, "max_results": 10})
     if data:
         display_search_results(data)
@@ -285,13 +285,13 @@ def list_genres():
         console.print(Panel(", ".join(data), title="[bold cyan]Available Genres[/bold cyan]", border_style="cyan"))
 
 def search_by_genre(genre, page):
-    endpoint = f"genre/{quote_plus(genre)}"
+    endpoint = f"genre/{quote(genre)}"
     data = make_request(endpoint, params={"page": page})
     if data:
         display_search_results(data, title=f"Results for Genre: {genre.capitalize()}")
 
 def search_by_studio(studio_id, page):
-    endpoint = f"studio/{quote_plus(studio_id)}"
+    endpoint = f"studio/{quote(studio_id)}"
     data = make_request(endpoint, params={"page": page})
     if data:
         display_search_results(data, title=f"Results for Studio: {studio_id}")
@@ -308,7 +308,7 @@ def get_spotlight():
         display_spotlight(data)
 
 def get_search_suggestions(query):
-    endpoint = f"search-suggestions/{quote_plus(query)}"
+    endpoint = f"search-suggestions/{quote(query)}"
     data = make_request(endpoint)
     if data:
         display_suggestions(data)
