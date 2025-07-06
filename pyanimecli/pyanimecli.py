@@ -191,7 +191,7 @@ def download_episode(episode_id, download_type, output_path=None):
             output_file_path=output_path,
         )
         console.print("Starting video download...")
-        downloader.download_playlist(merge=True)
+        downloader.download_master_playlist(merge=True)
         console.print(f"\n[bold green]Video download complete![/bold green]")
     except Exception as e:
         console.print(f"[bold red]An error occurred during video download:[/bold red] {e}")
