@@ -1,3 +1,4 @@
 requests
 rich
 pym3u8downloader
+packaging
