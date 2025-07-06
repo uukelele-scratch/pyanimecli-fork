@@ -125,6 +125,35 @@ def display_anime_info(info):
         console.print(episode_table)
         console.print("Use -w <Episode ID> <sub|dub> to watch.")
 
+def get_and_watch_episode(anime_id, ep_num_str, watch_type):
+    try:
+        episode_number = int(ep_num_str)
+    except ValueError:
+        console.print(f"[bold red]Error:[/bold red] Episode number must be an integer. You provided '{ep_num_str}'.")
+        return
+
+    console.print(f"Fetching info for anime [cyan]{anime_id}[/cyan] to find episode {episode_number}...")
+    endpoint = f"info/{anime_id}"
+    data = make_request(endpoint)
+
+    if not data or not data.get("episodes"):
+        console.print(f"[bold red]Could not retrieve info or episode list for anime ID '{anime_id}'.[/bold red]")
+        return
+
+    target_episode = None
+    for ep in data["episodes"]:
+        if ep.get("number") is not None and int(ep.get("number")) == episode_number:
+            target_episode = ep
+            break
+
+    if target_episode and target_episode.get("id"):
+        episode_id = target_episode["id"]
+        console.print(f"Found Episode ID: [green]{episode_id}[/green]. Proceeding to watch...")
+        watch_episode(episode_id, watch_type)
+    else:
+        console.print(f"[bold red]Could not find episode number {episode_number} for this anime.[/bold red]")
+        console.print("Use the -i <anime_id> command to see a list of available episodes.")
+
 def display_spotlight(spotlight_data):
     if not spotlight_data:
         console.print("[yellow]No spotlight data found.[/yellow]")
@@ -319,7 +348,7 @@ def display_help(command=None):
     help_data = {
         "search": ("-s, -search <query>", "Search for an anime."),
         "info": ("-i, -info <id>", "Get detailed information about an anime by its ID."),
-        "watch": ("-w, -watch <episode_id> <sub|dub>", "Watch an episode using VLC. Requires episode ID and type (sub or dub)."),
+        "watch": ("-w, -watch <id> <ep#> <type> | <ep_id> <type>", "Watch an episode by anime ID and ep number, OR by full episode ID."),
         "recent": ("-re, -recent-episodes", "List recently updated episodes."),
         "top_airing": ("-ta, -top-airing", "List top airing anime."),
         "genres": ("-g, -genres", "List all available genres."),
@@ -344,14 +373,15 @@ def display_help(command=None):
             table.add_row(usage, desc)
         console.print(table)
         console.print("\nUse -h <command_name> (e.g., -h search) for specific command help.")
-
+        
 def main():
     parser = argparse.ArgumentParser(description="A command-line tool to interact with the YumaAPI for anime.", add_help=False)
     
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-s', '-search', dest='search', nargs='+', help='Search for an anime.')
     group.add_argument('-i', '-info', dest='info', help='Get info for an anime by ID.')
-    group.add_argument('-w', '-watch', dest='watch', nargs=2, metavar=('EPISODE_ID', 'TYPE'), help='Watch an episode (sub/dub).')
+    # Updated -w to accept multiple arguments
+    group.add_argument('-w', '-watch', dest='watch', nargs='+', metavar=('ID', '...'), help='Watch an episode. See -h watch.')
     group.add_argument('-re', '-recent-episodes', dest='recent', action='store_true', help='Get recent episodes.')
     group.add_argument('-ta', '-top-airing', dest='top_airing', action='store_true', help='Get top airing anime.')
     group.add_argument('-g', '-genres', dest='genres', action='store_true', help='List all genres.')
@@ -393,7 +423,24 @@ def main():
         elif args.info:
             get_anime_info(args.info)
         elif args.watch:
-            watch_episode(args.watch[0], args.watch[1].lower())
+            # New logic to handle different ways of calling -w
+            first_arg = args.watch[0]
+            if "$episode$" in first_arg:
+                # Mode 1: watch_episode(episode_id, type)
+                if len(args.watch) == 2:
+                    episode_id, watch_type = args.watch
+                    watch_episode(episode_id, watch_type.lower())
+                else:
+                    console.print("[bold red]Invalid Usage:[/bold red] When using a full Episode ID, provide only the ID and type (sub/dub).")
+                    display_help('watch')
+            else:
+                # Mode 2: get_and_watch_episode(anime_id, ep_num, type)
+                if len(args.watch) == 3:
+                    anime_id, ep_num_str, watch_type = args.watch
+                    get_and_watch_episode(anime_id, ep_num_str, watch_type.lower())
+                else:
+                    console.print("[bold red]Invalid Usage:[/bold red] When using an Anime ID, you must provide the ID, an episode number, and the type (sub/dub).")
+                    display_help('watch')
         elif args.recent:
             get_recent_episodes(args.page)
         elif args.top_airing:
@@ -418,7 +465,7 @@ def main():
         display_help()
     except Exception as e:
         console.print(f"[bold red]An unexpected error occurred:[/bold red] {e}")
-
+        
 if __name__ == "__main__":
     try:
         main()
