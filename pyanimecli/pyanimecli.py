@@ -29,7 +29,7 @@ except ImportError:
     print("Error: The 'rich' library is required. Please install it using 'pip install rich'.")
     sys.exit(1)
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 PACKAGE_NAME = "pyanimecli"
 
 console = Console()
@@ -185,14 +185,30 @@ def download_episode(episode_id, download_type, output_path=None):
         return
     
     proxied_stream_url = proxy_url(stream_url)
+    
     try:
         downloader = M3U8Downloader(
             input_file_path=proxied_stream_url,
             output_file_path=output_path,
         )
         console.print("Starting video download...")
-        downloader.download_master_playlist(merge=True)
+
+        try:
+            # Attempt to download using the default master playlist method
+            downloader.download_master_playlist(merge=True, resolution="1280x720")
+        except M3U8DownloaderWarning as warn:
+            # If multiple variants found, show them
+            console.print("[yellow]Multiple video variants found. Please specify one.[/yellow]")
+            variants = warn.json_data or []
+            for i, variant in enumerate(variants, 1):
+                console.print(
+                    f"{i}. Name: {variant.get('name')}, Bandwidth: {variant.get('bandwidth')}, Resolution: {variant.get('resolution')}"
+                )
+            console.print("[bold red]Please edit the script to specify the desired resolution or variant.[/bold red]")
+            return
+
         console.print(f"\n[bold green]Video download complete![/bold green]")
+
     except Exception as e:
         console.print(f"[bold red]An error occurred during video download:[/bold red] {e}")
         return
@@ -211,7 +227,7 @@ def download_episode(episode_id, download_type, output_path=None):
                 console.print("[green]Subtitle download complete.[/green]")
             except requests.exceptions.RequestException as e:
                 console.print(f"[bold red]Failed to download subtitles:[/bold red] {e}")
-
+                
 def get_and_download_episode(anime_id, ep_num_str, download_type, output_path=None):
     try:
         episode_number = int(ep_num_str)
