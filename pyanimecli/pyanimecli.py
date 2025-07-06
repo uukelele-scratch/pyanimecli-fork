@@ -8,6 +8,15 @@ import shutil
 import os
 import re
 from urllib.parse import quote
+try:
+    from pym3u8downloader import M3U8Downloader
+except ImportError:
+    M3U8Downloader = None
+    
+try:
+    from packaging import version as semver
+except ImportError:
+    semver = None
 
 try:
     from rich.console import Console
@@ -19,6 +28,9 @@ try:
 except ImportError:
     print("Error: The 'rich' library is required. Please install it using 'pip install rich'.")
     sys.exit(1)
+
+__version__ = "1.0.6"
+PACKAGE_NAME = "pyanimecli"
 
 console = Console()
 
@@ -124,6 +136,134 @@ def display_anime_info(info):
             )
         console.print(episode_table)
         console.print("Use -w <Episode ID> <sub|dub> to watch.")
+
+def sanitize_filename(name):
+    if not name:
+        return "download"
+    name = re.sub(r'[\\/*?:"<>|]', "", name)
+    name = re.sub(r'\s+', '_', name)
+    return name.strip()
+
+def download_episode(episode_id, download_type, output_path=None):
+    if M3U8Downloader is None:
+        console.print("[bold red]Download Error:[/bold red] The 'pym3u8downloader' library is not installed.")
+        console.print("Please run: [cyan]pip install pym3u8downloader[/cyan]")
+        return
+
+    if not output_path:
+        console.print("Auto-generating filename (requires fetching anime info)...")
+        try:
+            anime_id = episode_id.split("$episode$")[0]
+            anime_info = make_request(f"info/{anime_id}")
+            if not anime_info:
+                raise ValueError("Failed to get anime info for filename generation.")
+            
+            anime_title = anime_info.get("title", "Unknown_Anime")
+            ep_num = "Unknown"
+            for ep in anime_info.get("episodes", []):
+                if ep.get("id") == episode_id:
+                    ep_num = str(ep.get("number", "Unknown")).zfill(2)
+                    break
+            
+            safe_title = sanitize_filename(anime_title)
+            output_path = f"./{safe_title}-Episode-{ep_num}-[{download_type}].mp4"
+        except Exception as e:
+            console.print(f"[bold red]Could not generate filename:[/bold red] {e}. Aborting download.")
+            return
+
+    console.print(f"Preparing to download to: [green]{os.path.abspath(output_path)}[/green]")
+    console.print("Fetching stream data...")
+    stream_data = make_request("watch", params={"episodeId": episode_id, "type": download_type})
+
+    if not stream_data or not stream_data.get("sources"):
+        console.print("[bold red]Could not retrieve stream sources for download.[/bold red]")
+        return
+
+    stream_url = stream_data["sources"][0].get("url")
+    if not stream_url:
+        console.print("[bold red]Incomplete stream data received.[/bold red]")
+        return
+    
+    proxied_stream_url = proxy_url(stream_url)
+    try:
+        downloader = M3U8Downloader(
+            input_file_path=proxied_stream_url,
+            output_file_path=output_path,
+        )
+        console.print("Starting video download...")
+        downloader.download_playlist(merge=True)
+        console.print(f"\n[bold green]Video download complete![/bold green]")
+    except Exception as e:
+        console.print(f"[bold red]An error occurred during video download:[/bold red] {e}")
+        return
+
+    if download_type == "sub" and stream_data.get("subtitles"):
+        sub_url = stream_data["subtitles"][0].get("url")
+        if sub_url:
+            sub_filename = os.path.splitext(output_path)[0] + ".vtt"
+            console.print(f"Downloading subtitles to [cyan]{sub_filename}[/cyan]...")
+            try:
+                proxied_sub_url = proxy_url(sub_url)
+                sub_response = requests.get(proxied_sub_url)
+                sub_response.raise_for_status()
+                with open(sub_filename, 'wb') as f:
+                    f.write(sub_response.content)
+                console.print("[green]Subtitle download complete.[/green]")
+            except requests.exceptions.RequestException as e:
+                console.print(f"[bold red]Failed to download subtitles:[/bold red] {e}")
+
+def get_and_download_episode(anime_id, ep_num_str, download_type, output_path=None):
+    try:
+        episode_number = int(ep_num_str)
+    except ValueError:
+        console.print(f"[bold red]Error:[/bold red] Episode number must be an integer. You provided '{ep_num_str}'.")
+        return
+
+    console.print(f"Fetching info for anime [cyan]{anime_id}[/cyan] to find episode {episode_number}...")
+    data = make_request(f"info/{anime_id}")
+
+    if not data or not data.get("episodes"):
+        console.print(f"[bold red]Could not retrieve info or episode list for anime ID '{anime_id}'.[/bold red]")
+        return
+
+    target_episode = next((ep for ep in data["episodes"] if ep.get("number") is not None and int(ep.get("number")) == episode_number), None)
+
+    if target_episode and target_episode.get("id"):
+        episode_id = target_episode["id"]
+        console.print(f"Found Episode ID: [green]{episode_id}[/green]. Proceeding to download...")
+        
+        if not output_path:
+            anime_title = data.get("title", "Unknown_Anime")
+            ep_num = str(target_episode.get("number", "Unknown")).zfill(2)
+            safe_title = sanitize_filename(anime_title)
+            output_path = f"./{safe_title}-Episode-{ep_num}-[{download_type}].mp4"
+
+        download_episode(episode_id, download_type, output_path)
+    else:
+        console.print(f"[bold red]Could not find episode number {episode_number} for this anime.[/bold red]")
+        console.print("Use the -i <anime_id> command to see a list of available episodes.")
+
+def check_for_updates():
+    if semver is None:
+        console.print("[yellow]Skipping update check: 'packaging' library not found. Install with 'pip install packaging'[/yellow]")
+        return
+    try:
+        console.print("Checking for updates...")
+        url = f"https://pypi.org/pypi/{PACKAGE_NAME}/json"
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        latest_version_str = response.json()["info"]["version"]
+
+        current_version = semver.parse(__version__)
+        latest_version = semver.parse(latest_version_str)
+
+        if latest_version > current_version:
+            console.print(f"\n[bold yellow]A new version is available: {latest_version_str}[/bold yellow]")
+            console.print(f"To update, run: [cyan]pip install --upgrade {PACKAGE_NAME}[/cyan]")
+        else:
+            console.print("[green]You are using the latest version.[/green]")
+    except Exception:
+        console.print("[yellow]Could not check for updates.[/yellow]")
 
 def get_and_watch_episode(anime_id, ep_num_str, watch_type):
     try:
@@ -343,12 +483,13 @@ def get_search_suggestions(query):
         display_suggestions(data)
 
 def display_help(command=None):
-    console.print(Panel("[bold yellow]pyanimecli - A CLI for Watching Anime[/bold yellow]", expand=False, border_style="yellow"))
+    console.print(Panel(f"[bold yellow]pyanimecli v{__version__} - A CLI for Watching & Downloading Anime[/bold yellow]", expand=False, border_style="yellow"))
     
     help_data = {
         "search": ("-s, -search <query>", "Search for an anime."),
         "info": ("-i, -info <id>", "Get detailed information about an anime by its ID."),
-        "watch": ("-w, -watch <id> <ep#> <type> | <ep_id> <type>", "Watch an episode by anime ID and ep number, OR by full episode ID."),
+        "watch": ("-w, -watch <id> <ep#> <type> | <ep_id> <type>", "Watch an episode using VLC."),
+        "download": ("-d, -download <id> <ep#> <type> [out] | <ep_id> <type> [out]", "Download an episode. '[out]' is an optional file path."),
         "recent": ("-re, -recent-episodes", "List recently updated episodes."),
         "top_airing": ("-ta, -top-airing", "List top airing anime."),
         "genres": ("-g, -genres", "List all available genres."),
@@ -357,7 +498,8 @@ def display_help(command=None):
         "schedule": ("-sc, -schedule <YYYY-MM-DD>", "Get the airing schedule for a specific date."),
         "spotlight": ("-sp, -spotlight", "Show spotlight anime."),
         "suggestions": ("-ss, -search-suggestions <query>", "Get search suggestions for a query."),
-        "pagination": ("-p, -page <number>", "Used with commands that support pages (search, recent, etc.).")
+        "pagination": ("-p, -page <number>", "Used with commands that support pages (search, recent, etc.)."),
+        "version": ("-v, -version", "Show the script version and check for updates.")
     }
 
     if command and command in help_data:
@@ -372,16 +514,16 @@ def display_help(command=None):
         for key, (usage, desc) in help_data.items():
             table.add_row(usage, desc)
         console.print(table)
-        console.print("\nUse -h <command_name> (e.g., -h search) for specific command help.")
+        console.print("\nUse -h <command_name> (e.g., -h download) for specific command help.")
         
 def main():
-    parser = argparse.ArgumentParser(description="A command-line tool to interact with the YumaAPI for anime.", add_help=False)
+    parser = argparse.ArgumentParser(description=f"pyanimecli v{__version__} - A CLI for anime.", add_help=False)
     
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-s', '-search', dest='search', nargs='+', help='Search for an anime.')
     group.add_argument('-i', '-info', dest='info', help='Get info for an anime by ID.')
-    # Updated -w to accept multiple arguments
     group.add_argument('-w', '-watch', dest='watch', nargs='+', metavar=('ID', '...'), help='Watch an episode. See -h watch.')
+    group.add_argument('-d', '-download', dest='download', nargs='+', metavar=('ID', '...'), help='Download an episode. See -h download.')
     group.add_argument('-re', '-recent-episodes', dest='recent', action='store_true', help='Get recent episodes.')
     group.add_argument('-ta', '-top-airing', dest='top_airing', action='store_true', help='Get top airing anime.')
     group.add_argument('-g', '-genres', dest='genres', action='store_true', help='List all genres.')
@@ -390,7 +532,8 @@ def main():
     group.add_argument('-sc', '-schedule', dest='schedule', help='Get schedule for a date (YYYY-MM-DD).')
     group.add_argument('-sp', '-spotlight', dest='spotlight', action='store_true', help='Get spotlight anime.')
     group.add_argument('-ss', '-search-suggestions', dest='suggestions', nargs='+', help='Get search suggestions.')
-    group.add_argument('-h', '-help', dest='help', nargs='?', const='all', help='Show this help message or help for a specific command.')
+    group.add_argument('-h', '-help', dest='help', nargs='?', const='all', help='Show help message.')
+    group.add_argument('-v', '-version', dest='version', action='store_true', help='Show script version.')
 
     parser.add_argument('-p', '-page', dest='page', type=int, default=1, help='Page number for paginated results.')
 
@@ -403,44 +546,59 @@ def main():
         
         if args.help:
             cmd_map = {
-                "search": "search", "s": "search",
-                "info": "info", "i": "info",
-                "watch": "watch", "w": "watch",
+                "search": "search", "s": "search", "info": "info", "i": "info",
+                "watch": "watch", "w": "watch", "download": "download", "d": "download",
                 "recent": "recent", "re": "recent", "recent-episodes": "recent",
                 "top": "top_airing", "ta": "top_airing", "top-airing": "top_airing",
-                "genres": "genres", "g": "genres",
-                "genre-search": "genre_search", "gs": "genre_search",
-                "studio": "studio", "st": "studio",
-                "schedule": "schedule", "sc": "schedule",
+                "genres": "genres", "g": "genres", "genre-search": "genre_search", "gs": "genre_search",
+                "studio": "studio", "st": "studio", "schedule": "schedule", "sc": "schedule",
                 "spotlight": "spotlight", "sp": "spotlight",
                 "suggestions": "suggestions", "ss": "suggestions", "search-suggestions": "suggestions",
-                "page": "pagination", "p": "pagination"
+                "page": "pagination", "p": "pagination", "version": "version", "v": "version",
             }
             command_to_help = cmd_map.get(args.help) if args.help != 'all' else None
             display_help(command_to_help)
+        elif args.version:
+            console.print(f"pyanimecli version [bold cyan]{__version__}[/bold cyan]")
+            check_for_updates()
         elif args.search:
             search_anime(' '.join(args.search), args.page)
         elif args.info:
             get_anime_info(args.info)
         elif args.watch:
-            # New logic to handle different ways of calling -w
             first_arg = args.watch[0]
             if "$episode$" in first_arg:
-                # Mode 1: watch_episode(episode_id, type)
                 if len(args.watch) == 2:
-                    episode_id, watch_type = args.watch
-                    watch_episode(episode_id, watch_type.lower())
+                    watch_episode(args.watch[0], args.watch[1].lower())
                 else:
-                    console.print("[bold red]Invalid Usage:[/bold red] When using a full Episode ID, provide only the ID and type (sub/dub).")
+                    console.print("[bold red]Invalid Usage:[/bold red] Use: <episode_id> <sub|dub>")
                     display_help('watch')
             else:
-                # Mode 2: get_and_watch_episode(anime_id, ep_num, type)
                 if len(args.watch) == 3:
-                    anime_id, ep_num_str, watch_type = args.watch
-                    get_and_watch_episode(anime_id, ep_num_str, watch_type.lower())
+                    get_and_watch_episode(args.watch[0], args.watch[1], args.watch[2].lower())
                 else:
-                    console.print("[bold red]Invalid Usage:[/bold red] When using an Anime ID, you must provide the ID, an episode number, and the type (sub/dub).")
+                    console.print("[bold red]Invalid Usage:[/bold red] Use: <anime_id> <ep_num> <sub|dub>")
                     display_help('watch')
+        elif args.download:
+            args_list = args.download
+            first_arg = args_list[0]
+            is_full_id = "$episode$" in first_arg
+            if is_full_id:
+                if len(args_list) not in [2, 3]:
+                    console.print("[bold red]Invalid Usage:[/bold red] Use: <episode_id> <type> [output_path]")
+                    display_help('download')
+                    return
+                episode_id, dl_type = args_list[0], args_list[1]
+                output_path = args_list[2] if len(args_list) == 3 else None
+                download_episode(episode_id, dl_type.lower(), output_path)
+            else:
+                if len(args_list) not in [3, 4]:
+                    console.print("[bold red]Invalid Usage:[/bold red] Use: <anime_id> <ep_num> <type> [output_path]")
+                    display_help('download')
+                    return
+                anime_id, ep_num_str, dl_type = args_list[0], args_list[1], args_list[2]
+                output_path = args_list[3] if len(args_list) == 4 else None
+                get_and_download_episode(anime_id, ep_num_str, dl_type.lower(), output_path)
         elif args.recent:
             get_recent_episodes(args.page)
         elif args.top_airing:
