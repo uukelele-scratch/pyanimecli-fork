@@ -194,10 +194,8 @@ def download_episode(episode_id, download_type, output_path=None):
         console.print("Starting video download...")
 
         try:
-            # Attempt to download using the default master playlist method
             downloader.download_master_playlist(merge=True, resolution="1280x720")
         except M3U8DownloaderWarning as warn:
-            # If multiple variants found, show them
             console.print("[yellow]Multiple video variants found. Please specify one.[/yellow]")
             variants = warn.json_data or []
             for i, variant in enumerate(variants, 1):
