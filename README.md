@@ -34,6 +34,14 @@ pip install pyanimecli
 
 > Make sure your `pip` points to Python 3.11+ (e.g., use `pip3` if needed).
 
+### From Git (Latest)
+
+```bash
+pip install git+https://github.com/Gamma7113131/pyanimecli.git
+```
+
+> This installs the latest commit from the repository’s main branch.
+
 ---
 
 ## 🛠 Prerequisites
