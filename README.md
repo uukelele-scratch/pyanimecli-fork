@@ -3,7 +3,6 @@
 ![Build](https://github.com/Gamma7113131/pyanimecli/actions/workflows/publish.yml/badge.svg)
 ![License](https://img.shields.io/pypi/l/pyanimecli.svg)
 ![Downloads](https://img.shields.io/pypi/dm/pyanimecli.svg)
-![Python Versions](https://img.shields.io/pypi/pyversions/pyanimecli.svg)
 
 
 A powerful command-line interface for searching, getting info, and watching anime directly from your terminal, powered by the [YumaAPI](https://yumaapi.vercel.app/).
@@ -26,7 +25,8 @@ A powerful command-line interface for searching, getting info, and watching anim
 
 ## 📦 Installation
 
-### From PyPI (Recommended)
+### From PyPI (Recommended)<img width="500" height="500" alt="pyanimecli" src="https://github.com/user-attachments/assets/1007f6a2-f3c9-4f9c-97d6-2139e2958c75" />
+
 
 ```bash
 pip install pyanimecli
