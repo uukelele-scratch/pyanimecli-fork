@@ -7,6 +7,8 @@
 
 A powerful command-line interface for searching, getting info, and watching anime directly from your terminal, powered by the [YumaAPI](https://yumaapi.vercel.app/).
 
+<img width="500" height="500" alt="pyanimecli" src="https://github.com/user-attachments/assets/1007f6a2-f3c9-4f9c-97d6-2139e2958c75" />
+
 ---
 
 ## 🚀 Features
@@ -25,7 +27,7 @@ A powerful command-line interface for searching, getting info, and watching anim
 
 ## 📦 Installation
 
-### From PyPI (Recommended)<img width="500" height="500" alt="pyanimecli" src="https://github.com/user-attachments/assets/1007f6a2-f3c9-4f9c-97d6-2139e2958c75" />
+### From PyPI (Recommended)
 
 
 ```bash
