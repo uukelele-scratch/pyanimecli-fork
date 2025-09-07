@@ -472,8 +472,7 @@ def watch_episode(episode_id, watch_type):
         proxied_stream_url = proxy_url(stream_url)
         
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".mp4") as tmp_file:
-            os.remove(tmp_file.name)
-            cmd = ["ffmpeg", "-i", proxied_stream_url, "-c", "copy", tmp_file.name]
+            cmd = ["ffmpeg", "-y", "-i", proxied_stream_url, "-c", "copy", tmp_file.name]
             subprocess.run(cmd)
             
             from .tui import render_frame
